@@ -1,11 +1,12 @@
 package ru.serega6531.packmate.model;
 
+import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import javax.persistence.*;
+import java.util.List;
 
+@Data
 @Entity
 @GenericGenerator(
         name = "stream_generator",
@@ -21,5 +22,8 @@ public class Stream {
     @Id
     @GeneratedValue(generator = "stream_generator")
     private Long id;
+
+    @OneToMany(mappedBy = "stream", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Packet> packet;
 
 }
