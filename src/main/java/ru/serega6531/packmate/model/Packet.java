@@ -26,4 +26,6 @@ public class Packet {
     @JoinColumn(name = "stream_id", nullable = false)
     private Stream stream;
 
+    private long timestamp;
+
 }
