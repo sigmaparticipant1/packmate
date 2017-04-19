@@ -7,12 +7,12 @@ import ru.serega6531.packmate.service.optimization.tls.keys.enums.SignatureHashA
 
 public class EcdheServerParams {
 
-    private CurveType curveType;
-    private NamedCurve namedCurve;
-    private byte[] pubkey;
-    private SignatureHashAlgorithmHash signatureHashAlgorithmHash;
-    private SignatureHashAlgorithmSignature signatureHashAlgorithmSignature;
-    private byte[] signature;
+    private final CurveType curveType;
+    private final NamedCurve namedCurve;
+    private final byte[] pubkey;
+    private final SignatureHashAlgorithmHash signatureHashAlgorithmHash;
+    private final SignatureHashAlgorithmSignature signatureHashAlgorithmSignature;
+    private final byte[] signature;
 
     public EcdheServerParams(CurveType curveType, NamedCurve namedCurve, byte[] pubkey,
                              SignatureHashAlgorithmHash signatureHashAlgorithmHash,
