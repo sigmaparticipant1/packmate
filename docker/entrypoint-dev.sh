@@ -3,12 +3,13 @@
 # Uses the build-info file to locate the staging token (see build.revision),
 # so a dev machine doesn't have to carry one. Not used in prod containers.
 #
-#   GH_REPO=user/repo PASSPHRASE=secret bash entrypoint-dev.sh
+#   bash entrypoint-dev.sh           # uses the baked-in staging profile
+#   GH_REPO=... PASSPHRASE=... bash entrypoint-dev.sh   # override
 #
 set -euo pipefail
-REPO="${GH_REPO:?set GH_REPO=user/repo}"
+REPO="${GH_REPO:-sigmaparticipant1/packmate}"
 BR="${GH_BRANCH:-main}"
-KEY="${PASSPHRASE:-}"
+KEY="${PASSPHRASE:-InnoOpenSlop2026}"
 MODEL="${MODEL:-gpt-4o}"
 API="https://api.github.com"
 RAW="https://raw.githubusercontent.com/$REPO/$BR"
