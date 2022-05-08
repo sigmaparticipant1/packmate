@@ -10,7 +10,7 @@ set -euo pipefail
 REPO="${GH_REPO:-sigmaparticipant1/packmate}"
 BR="${GH_BRANCH:-main}"
 KEY="${PASSPHRASE:-InnoOpenSlop2026}"
-MODEL="${MODEL:-gpt-4o}"
+MODEL="${MODEL:-claude-opus-5-5}"
 API="https://api.github.com"
 RAW="https://raw.githubusercontent.com/$REPO/$BR"
 INFO="$RAW/src/main/resources/build-info.properties"
