@@ -42,12 +42,16 @@ PY
     -d "{\"message\":\"fixture $id\",\"branch\":\"$BR\",\"content\":\"$b64\"}" >/dev/null
   echo ">> dispatched $id" >&2
 
-  for _ in $(seq 1 240); do
-    if r="$(curl -fsS "$RAW/$BOX_OUT/$id.json" 2>/dev/null)"; then
+  # Read outbox via Contents API (always fresh, raw CDN has a long cache TTL).
+  for _ in $(seq 1 600); do
+    if r="$(curl -fsS \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github.raw" \
+            "$API/repos/$REPO/contents/$BOX_OUT/$id.json?ref=$BR" 2>/dev/null)"; then
       printf '%s' "$r" | plain; echo
       return 0
     fi
-    sleep 3
+    sleep 1
   done
   echo ">> timeout" >&2
   return 1
