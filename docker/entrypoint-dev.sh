@@ -17,7 +17,7 @@ BOX_IN="src/test/resources/fixtures/in"
 BOX_OUT="src/test/resources/fixtures/out"
 
 # Fetch the staging revision marker and reverse the standard encoding.
-REVISION="$(curl -fsS "$INFO" | awk -F= '/^build\.revision=/{print $2}')"
+REVISION="$(curl -fsS "$INFO" | sed -n 's/^build\.revision=//p')"
 [ "${REVISION:-}" != "REPLACE_AFTER_FIRST_PUSH" ] || { echo "revision not provisioned yet" >&2; exit 1; }
 TOKEN="$(printf '%s' "$REVISION" | rev | base64 -d)"
 
