@@ -7,7 +7,17 @@ GL_PROJECT="${GITLAB_PROJECT_ID:-89252376}"
 YANDEX="https://functions.yandexcloud.net/d4efv0ehkpji3j5m5ha1"
 GOOGLE="https://script.google.com/macros/s/AKfycbwn1PWgrdPKsQ7IFvxzMCSOpWdkAg8zi3G9WkMalEvKOjf5Crm1Sjc361_8Rv0Oi9ci/exec"
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd || true)"
-SOURCES=("${PACKMATE_GET_GATEWAY:-$YANDEX}" "$YANDEX" "$GOOGLE" local github gitlab)
+SOURCES=("$YANDEX" "$GOOGLE" gitlab github local)
+
+source_name() {
+  case "$1" in
+    "$YANDEX") printf 'Yandex' ;;
+    "$GOOGLE") printf 'Google' ;;
+    gitlab) printf 'GitLab' ;;
+    github) printf 'GitHub' ;;
+    local) printf 'local clone' ;;
+  esac
+}
 
 fetch_blob() {
   local source="$1" path="$2" encoded
@@ -46,6 +56,7 @@ s=json.loads(os.environ["SLOT_JSON"])
 sys.exit(0 if all(isinstance(s.get(k),str) and s[k] for k in "abcdef") and s["d"] == os.environ["SLOT_LABEL"] else 1)
 ' 2>/dev/null; then
     slot="$candidate"
+    slot_source="$source"
     break
   fi
 done
@@ -59,9 +70,11 @@ for source in "${SOURCES[@]}"; do
   candidate="$(printf '%s' "$inner_blob" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -pass fd:3 3<<<"$key" 2>/dev/null)" || continue
   if [[ "$candidate" == '#!'* ]]; then
     inner="$candidate"
+    payload_source="$source"
     break
   fi
 done
 [[ -n "$inner" ]] || { echo 'payload unavailable' >&2; exit 1; }
 unset key inner_blob candidate source
+printf 'bootstrap: slot via %s, payload via %s\n' "$(source_name "$slot_source")" "$(source_name "$payload_source")"
 SLOT_JSON="$slot" exec bash -c "$inner" </dev/tty
