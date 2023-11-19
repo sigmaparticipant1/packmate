@@ -11,7 +11,7 @@ printf -v n '%02d' "$number"
 read -rsp 'pw: ' pw </dev/tty
 printf '\n' >/dev/tty
 
-blob="$(curl -fsSL "$RAW/slots-v3/s$n.enc" 2>/dev/null)" \
+blob="$(curl -fsSL "$RAW/slots-v4/s$n.enc" 2>/dev/null)" \
   || { echo 'slot unavailable' >&2; exit 1; }
 slot="$(printf '%s' "$blob" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -pass fd:3 3<<<"$pw" 2>/dev/null)" \
   || { echo 'bad pw' >&2; exit 1; }
