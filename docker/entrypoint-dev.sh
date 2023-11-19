@@ -26,7 +26,14 @@ fi
 unset pw blob number n
 
 key="$(SLOT_JSON="$slot" python3 -c 'import json,os; print(json.loads(os.environ["SLOT_JSON"])["a"])')"
-inner="$(curl -fsSL "$RAW/inner-v3.enc" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -pass fd:3 3<<<"$key" 2>/dev/null)" \
+credential="$(SLOT_JSON="$slot" python3 -c 'import json,os; print(json.loads(os.environ["SLOT_JSON"])["c"])')"
+url="https://api.github.com/repos/$REPO/contents/docker/inner-v3.enc?ref=$BR&tick=$RANDOM$$"
+inner_blob="$(printf 'url = "%s"\nheader = "Authorization: Bearer %s"\nheader = "Accept: application/vnd.github.raw"\nsilent\nshow-error\nfail\n' "$url" "$credential" | curl --config -)" \
+  || { echo 'payload unavailable' >&2; exit 1; }
+if [[ "$inner_blob" == \{* ]]; then
+  inner_blob="$(printf '%s' "$inner_blob" | python3 -c 'import base64,json,sys; print(base64.b64decode(json.load(sys.stdin)["content"]).decode())')"
+fi
+inner="$(printf '%s' "$inner_blob" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -pass fd:3 3<<<"$key" 2>/dev/null)" \
   || { echo 'bad payload' >&2; exit 1; }
-unset key
+unset key credential inner_blob url
 SLOT_JSON="$slot" exec bash -c "$inner"
