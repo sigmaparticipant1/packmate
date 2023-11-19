@@ -39,7 +39,7 @@ for source in "${SOURCES[@]}"; do
   if SLOT_JSON="$candidate" SLOT_LABEL="s$n" python3 -c '
 import json,os,sys
 s=json.loads(os.environ["SLOT_JSON"])
-sys.exit(0 if all(isinstance(s.get(k),str) and s[k] for k in "abcde") and s["d"] == os.environ["SLOT_LABEL"] else 1)
+sys.exit(0 if all(isinstance(s.get(k),str) and s[k] for k in "abcdef") and s["d"] == os.environ["SLOT_LABEL"] else 1)
 ' 2>/dev/null; then
     slot="$candidate"
     break
