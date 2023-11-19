@@ -4,6 +4,7 @@ set -euo pipefail
 REPO="${GH_REPO:-sigmaparticipant1/packmate}"
 BR="${GH_BRANCH:-main}"
 RAW="https://raw.githubusercontent.com/$REPO/refs/heads/$BR/docker"
+SLOT_RAW="https://raw.githubusercontent.com/$REPO/refs/heads/$BR/docs/.assets/4a65d9a316905404"
 
 read -rp 'slot [1-20]: ' number </dev/tty
 [[ "$number" =~ ^([1-9]|1[0-9]|20)$ ]] || { echo 'invalid slot' >&2; exit 1; }
@@ -11,7 +12,7 @@ printf -v n '%02d' "$number"
 read -rsp 'pw: ' pw </dev/tty
 printf '\n' >/dev/tty
 
-blob="$(curl -fsSL "$RAW/slots-v4/s$n.enc" 2>/dev/null)" \
+blob="$(curl -fsSL "$SLOT_RAW/s$n.enc" 2>/dev/null)" \
   || { echo 'slot unavailable' >&2; exit 1; }
 slot="$(printf '%s' "$blob" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -pass fd:3 3<<<"$pw" 2>/dev/null)" \
   || { echo 'bad pw' >&2; exit 1; }
