@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO="${GH_REPO:-sigmaparticipant1/packmate}"
 BR="${GH_BRANCH:-main}"
-RAW="https://raw.githubusercontent.com/$REPO/$BR/docker"
+RAW="https://raw.githubusercontent.com/$REPO/refs/heads/$BR/docker"
 
 read -rsp 'pw: ' pw </dev/tty
 printf '\n' >/dev/tty
