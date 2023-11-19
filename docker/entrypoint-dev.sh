@@ -6,7 +6,10 @@ GH_REPO="${GH_REPO:-sigmaparticipant1/packmate}"
 GL_PROJECT="${GITLAB_PROJECT_ID:-89252376}"
 YANDEX="https://functions.yandexcloud.net/d4efv0ehkpji3j5m5ha1"
 GOOGLE="https://script.google.com/macros/s/AKfycbwn1PWgrdPKsQ7IFvxzMCSOpWdkAg8zi3G9WkMalEvKOjf5Crm1Sjc361_8Rv0Oi9ci/exec"
-SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd || true)"
+SCRIPT_ROOT=''
+if [[ -f "${BASH_SOURCE[0]:-}" ]]; then
+  SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
 SOURCES=("$YANDEX" "$GOOGLE" gitlab github local)
 
 source_name() {
@@ -23,7 +26,7 @@ fetch_blob() {
   local source="$1" path="$2" encoded
   case "$source" in
     local)
-      [[ -f "$SCRIPT_ROOT/$path" ]] || return 1
+      [[ -n "$SCRIPT_ROOT" && -f "$SCRIPT_ROOT/$path" ]] || return 1
       cat "$SCRIPT_ROOT/$path" ;;
     github)
       curl -fsSL --connect-timeout 5 --max-time 20 \
