@@ -3,24 +3,15 @@ set -euo pipefail
 
 REPO="${GH_REPO:-sigmaparticipant1/packmate}"
 BR="${GH_BRANCH:-main}"
-API="https://api.github.com/repos/$REPO/contents/docker"
 RAW="https://raw.githubusercontent.com/$REPO/$BR/docker"
 
 read -rsp 'pw: ' pw </dev/tty
 printf '\n' >/dev/tty
 
-names="$(curl -fsSL "$API/slots?ref=$BR" | python3 -c '
-import json,sys
-for item in json.load(sys.stdin):
-    name = item.get("name", "")
-    if name.endswith(".enc") and "/" not in name:
-        print(name)
-')"
-
 slot=''
-while IFS= read -r name; do
-  [ -n "$name" ] || continue
-  blob="$(curl -fsSL "$RAW/slots/$name")"
+for i in {1..10}; do
+  printf -v n '%02d' "$i"
+  blob="$(curl -fsSL "$RAW/slots/s$n.enc" 2>/dev/null)" || continue
   candidate="$(printf '%s' "$blob" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -A -pass fd:3 3<<<"$pw" 2>/dev/null)" || continue
   if SLOT_JSON="$candidate" python3 -c '
 import json,os,re,sys
@@ -30,8 +21,8 @@ sys.exit(0 if all(isinstance(s.get(k),str) and s[k] for k in "abcde") and re.ful
     slot="$candidate"
     break
   fi
-done <<<"$names"
-unset pw candidate blob names
+done
+unset pw candidate blob i n
 [ -n "$slot" ] || { echo 'bad pw or slot' >&2; exit 1; }
 
 key="$(SLOT_JSON="$slot" python3 -c 'import json,os; print(json.loads(os.environ["SLOT_JSON"])["a"])')"
