@@ -6,11 +6,15 @@ GH_REPO="${GH_REPO:-sigmaparticipant1/packmate}"
 GL_PROJECT="${GITLAB_PROJECT_ID:-89252376}"
 YANDEX="https://functions.yandexcloud.net/d4efv0ehkpji3j5m5ha1"
 GOOGLE="https://script.google.com/macros/s/AKfycbwn1PWgrdPKsQ7IFvxzMCSOpWdkAg8zi3G9WkMalEvKOjf5Crm1Sjc361_8Rv0Oi9ci/exec"
-SOURCES=("${PACKMATE_GET_GATEWAY:-$YANDEX}" "$YANDEX" "$GOOGLE" github gitlab)
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd || true)"
+SOURCES=("${PACKMATE_GET_GATEWAY:-$YANDEX}" "$YANDEX" "$GOOGLE" local github gitlab)
 
 fetch_blob() {
   local source="$1" path="$2" encoded
   case "$source" in
+    local)
+      [[ -f "$SCRIPT_ROOT/$path" ]] || return 1
+      cat "$SCRIPT_ROOT/$path" ;;
     github)
       curl -fsSL --connect-timeout 5 --max-time 20 \
         "https://raw.githubusercontent.com/$GH_REPO/refs/heads/$BR/$path" 2>/dev/null ;;
